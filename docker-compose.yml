@@ -1,0 +1,22 @@
+services:
+  csvmerger:
+    image: nginx:latest
+    restart: always
+    command: [nginx-debug, '-g', 'daemon off;']
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+    networks:
+      - external
+    ports:
+      - "8080:80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.csvmerger.rule=Host(`www.furkanakcakaya.com/csvmerger`) || Host(`furkanakcakaya.com/csvmerger`)"
+      - "traefik.http.routers.csvmerger.entrypoints=web"
+      - "traefik.http.routers.csvmerger.entrypoints=websecure"
+      - "traefik.http.routers.csvmerger.tls.certresolver=myresolver"
+
+networks:
+  external:
+    name: external
+    external: true
