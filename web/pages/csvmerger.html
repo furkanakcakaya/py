@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Birleştirici | Araçlar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #F97316;
+            --background-color: #121212;
+            --card-bg: #1E1E1E;
+            --surface-bg: #2A2A2A;
+            --text-color: #F1F5F9;
+            --text-muted: #A1A1AA;
+            --border-color: rgba(249, 115, 22, 0.2);
+            --success-color: #48BB78;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 2.5rem;
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+        }
+        h1 { font-size: 2.5rem; color: var(--primary-color); margin-bottom: 1rem; }
+        p { color: var(--text-muted); margin-bottom: 2rem; font-size: 1.1rem; }
+        .file-input-button {
+            border: 2px solid var(--primary-color); padding: .5em .8em;
+            border-radius: .3em; background-color: var(--primary-color);
+            color: #fff; cursor: pointer; transition: background-color 0.2s; display: inline-block;
+        }
+        .file-input-button:hover { background-color: #d85b00; }
+        .merge-button {
+            display: block; width: 100%; padding: 12px; margin-top: 20px;
+            font-size: 16px; color: #fff; background-color: #28a745;
+            border: none; border-radius: 5px; cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .merge-button:disabled { background-color: #555; cursor: not-allowed; }
+        .status-box { margin-top: 20px; padding: 10px; border-radius: 5px; background-color: var(--surface-bg); color: var(--text-muted); text-align: center; }
+        .back-link { display: inline-block; margin-top: 2rem; color: var(--text-muted); text-decoration: none; }
+        .back-link:hover { color: var(--primary-color); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tarayıcı Tabanlı CSV Birleştirici</h1>
+        <p>Dosyalarınızı seçin ve birleştirin. Tüm işlemler tarayıcınızda güvenle gerçekleşir.</p>
+        <label class="file-input-button" for="csv_files_input">Dosyaları Seç</label>
+        <input type="file" id="csv_files_input" multiple accept=".csv" style="display: none;">
+        <button id="merge_button" class="merge-button" disabled>Birleştir ve İndir</button>
+        <div id="status" class="status-box">Lütfen dosyaları seçin.</div>
+    </div>
+    <a href="/" class="back-link">← Araçlar Ana Sayfasına Dön</a>
+
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+    <script>
+        // Bu sayfaya özel script
+        const fileInput = document.getElementById('csv_files_input');
+        const mergeButton = document.getElementById('merge_button');
+        const statusDiv = document.getElementById('status');
+        
+        const pythonCode = `
+import pandas as pd
+import io
+
+def merge_csvs(file_contents):
+    df_list = []
+    for file_content in file_contents:
+        try:
+            file_bio = io.BytesIO(file_content.to_py())
+            df = pd.read_csv(file_bio)
+            df_list.append(df)
+        except Exception:
+            continue
+    if not df_list: return None
+    merged_df = pd.concat(df_list, ignore_index=True)
+    return merged_df.to_csv(index=False)
+`;
+
+        let pyodideInstance = null;
+        let isPyodideLoading = false;
+
+        async function loadPyodideIfNeeded() {
+            if (pyodideInstance || isPyodideLoading) return;
+            isPyodideLoading = true;
+            statusDiv.textContent = 'Gerekli ortam hazırlanıyor (Python yükleniyor)...';
+            try {
+                pyodideInstance = await loadPyodide();
+                statusDiv.textContent = 'Pandas kütüphanesi yükleniyor...';
+                await pyodideInstance.loadPackage('pandas');
+                pyodideInstance.runPython(pythonCode);
+                statusDiv.textContent = 'Hazır!';
+                mergeButton.disabled = false;
+            } catch (error) {
+                statusDiv.textContent = 'Ortam yüklenirken bir hata oluştu.';
+            } finally {
+                isPyodideLoading = false;
+            }
+        }
+        
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                 statusDiv.textContent = `${fileInput.files.length} dosya seçildi.`;
+                 loadPyodideIfNeeded();
+            }
+        });
+
+        mergeButton.onclick = async () => {
+            const files = fileInput.files;
+            if (files.length === 0) return;
+            statusDiv.textContent = `Toplam ${files.length} dosya işleniyor...`;
+            mergeButton.disabled = true;
+            
+            const filePromises = Array.from(files).map(file => file.arrayBuffer());
+            const fileContents = await Promise.all(filePromises);
+            const merge_csvs_py = pyodideInstance.globals.get('merge_csvs');
+            const result = merge_csvs_py(fileContents);
+            
+            if (result) {
+                downloadFile(result, 'birlesmis_dosya.csv');
+                statusDiv.textContent = `Başarılı! ${files.length} dosya birleştirildi.`;
+            } else {
+                statusDiv.textContent = 'Hata: Geçerli CSV dosyaları işlenemedi.';
+            }
+            merge_csvs_py.destroy();
+            mergeButton.disabled = false;
+        };
+
+        function downloadFile(content, fileName) {
+            const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>

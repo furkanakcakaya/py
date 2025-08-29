@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Sadece bu sayfaya özel stiller */
+        body { padding: 2rem 3rem; overflow-y: auto; }
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        .tool-card {
+            background-color: var(--card-bg); border: 1px solid var(--border-color);
+            border-radius: 0.75rem; padding: 1.5rem; text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        .tool-card:hover { border-color: var(--primary-color); transform: translateY(-5px); }
+        .tool-card.disabled { opacity: 0.5; cursor: not-allowed; transform: none; border-color: var(--border-color); }
+        .tool-card h3 { color: var(--text-color); font-size: 1.5rem; margin: 0 0 0.5rem 0; }
+        .tool-card p { color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; }
+    </style>
+</head>
+<body>
+    <div class="tool-grid">
+        <a href="#/csvmerger" target="_parent" class="tool-card">
+            <h3>🔄 CSV Birleştirici</h3>
+            <p>Birden fazla CSV dosyasını tek bir dosya altında birleştirin.</p>
+        </a>
+        <a href="#/youtube-dl" target="_parent" class="tool-card disabled">
+            <h3>🎵 YouTube MP3 İndirici</h3>
+            <p>YouTube videolarını kolayca MP3 formatına dönüştürün. (Yakında)</p>
+        </a>
+        <a href="#/wheel" target="_parent" class="tool-card disabled">
+            <h3>🎡 Çark Çevir</h3>
+            <p>Rastgele seçimler yapmak için interaktif bir çark. (Yakında)</p>
+        </a>
+        <a href="#/tournament" target="_parent" class="tool-card disabled">
+            <h3>🏆 Turnuva Oluşturucu</h3>
+            <p>Takımlar ve eşleşmelerle turnuvalar oluşturun. (Yakında)</p>
+        </a>
+    </div>
+</body>
+</html>
